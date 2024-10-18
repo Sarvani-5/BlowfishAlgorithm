@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blowfish Algorithm</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+        }
+        .box {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .box:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+        .bg-pattern {
+            background-image: url('https://www.transparenttextures.com/patterns/asfalt-light.png');
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-r from-blue-100 to-pink-100 min-h-screen flex flex-col items-center justify-center bg-pattern p-6">
+    <div class="text-center mb-10">
+        <h1 class="text-5xl font-extrabold text-gray-800 drop-shadow-md">Blowfish Algorithm</h1>
+        <p class="mt-2 text-lg text-gray-600">Secure your data with our intuitive encryption tool</p>
+    </div>
+
+    <div class="flex flex-wrap justify-center space-x-4 space-y-4">
+
+        <!-- Key Expansion -->
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full md:w-80 box">
+            <h2 class="text-xl font-semibold mb-2 text-gray-800">Key Expansion</h2>
+            <label class="block text-left mb-1 font-medium">Key:</label>
+            <input type="text" id="expansionKey" placeholder="Enter the encryption key" class="w-full p-2 border border-gray-300 rounded mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400">
+            <button id="expandKeyBtn" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition duration-300">Expand Key</button>
+            <button id="showExpandedKeyBtn" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition duration-300 mt-2" disabled>Show Expanded Keys</button>
+            <!-- Button to Show S-boxes -->
+<button id='showSBoxesBtn' class='mt-4 bg-purple-600 text-white py-2 px-4 rounded hover:bg-purple-700 transition duration-300'>Show S-boxes</button>
+        </div>
+
+        <!-- Encryption Section -->
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full md:w-80 box">
+            <h2 class="text-xl font-semibold mb-2 text-gray-800">Encryption</h2>
+            <label class="block text-left mb-1 font-medium">Plaintext:</label>
+            <textarea id="plaintext" placeholder="Enter the text to encrypt" rows="4" class="w-full p-2 border border-gray-300 rounded mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400" disabled></textarea>
+            <input type="file" id="fileInput" accept=".txt" class="w-full p-2 border border-gray-300 rounded mb-4 focus:outline-none focus:ring-2 focus:ring-blue-400" disabled />
+            <button id="encryptBtn" class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition duration-300" disabled>Encrypt</button>
+            <a id="downloadCiphertext" style="display:none;" download class="mt-4 inline-block bg-green-500 text-white py-1 px-3 rounded hover:bg-green-600 transition duration-300">Download Ciphertext</a>
+            <!-- Button to Show Ciphertext -->
+             <button id='viewCiphertextBtn' class='mt-4 bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition duration-300'>View Ciphertext</button>
+
+        </div>
+
+        <!-- Decryption Section -->
+        <div class="bg-white p-6 rounded-lg shadow-lg w-full md:w-80 box">
+            <h2 class="text-xl font-semibold mb-2 text-gray-800">Decryption</h2>
+            <label class="block text-left mb-1 font-medium">Ciphertext:</label>
+            <textarea id="ciphertext" placeholder="Enter the ciphertext to decrypt" rows="4" class="w-full p-2 border border-gray-300 rounded mb-4 focus:outline-none focus:ring-2 focus:ring-green-400" disabled></textarea>
+            <input type="file" id="encryptedFileInput" accept=".txt" class="w-full p-2 border border-gray-300 rounded mb-4 focus:outline-none focus:ring-2 focus:ring-green-400" disabled />
+            <button id="decryptBtn" class="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600 transition duration-300" disabled>Decrypt</button>
+            <a id="downloadPlaintext" style="display:none;" download class="mt-4 inline-block bg-green-500 text-white py-1 px-3 rounded hover:bg-green-600 transition duration-300">Download Plaintext</a>
+            <!-- Button to Show Plaintext -->
+             <button id='viewPlaintextBtn' class='mt-4 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition duration-300'>View Plaintext</button>
+
+        </div>
+
+    </div>
+
+    <!-- Output Sections -->
+    <div class="bg-white p-6 rounded-lg shadow-lg w-full md:w-[90%] mt-8">
+        <h3 class="text-xl font-semibold mb-2 text-gray-800"></h3>
+        <div id="ciphertextResultContainer" class="mb-4"></div>
+        <div id="plaintextResultContainer"></div>
+    </div>
+
+    <!-- Script Section -->
+    <script>
+        let keyGenerated = false;
+        let expandedKey = [];
+
+        // Expand Key Button Click Event
+        document.getElementById('expandKeyBtn').addEventListener('click', async () => {
+            const key = document.getElementById('expansionKey').value;
+
+            if (!key) {
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Please enter a key.',
+                    icon: 'error',
+                    confirmButtonText: 'Okay'
+                });
+                return;
+            }
+
+            const response = await fetch('/expand_key', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ key })
+            });
+
+            const data = await response.json();
+            expandedKey = data.expanded_key.map((subkey, index) => `Round ${index + 1} subkey: ${subkey.toString(16).padStart(8, '0')}`);
+            keyGenerated = true;
+
+            // Enable input fields after key generation
+            document.getElementById('plaintext').disabled = false;
+            document.getElementById('encryptBtn').disabled = false;
+            document.getElementById('fileInput').disabled = false;
+            document.getElementById('ciphertext').disabled = false;
+            document.getElementById('decryptBtn').disabled = false;
+            document.getElementById('encryptedFileInput').disabled = false;
+            document.getElementById('showExpandedKeyBtn').disabled = false;
+        });
+
+        // Show Expanded Keys Button Click Event
+        document.getElementById('showExpandedKeyBtn').addEventListener('click', () => {
+            if (!keyGenerated || expandedKey.length === 0) {
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'No expanded keys available. Please generate the key first.',
+                    icon: 'error',
+                    confirmButtonText: 'Okay'
+                });
+                return;
+            }
+
+            const expandedKeysContent = expandedKey.join('<br>'); // Join the keys for display
+            Swal.fire({
+                title: 'Expanded Keys',
+                html: `<div style="font-family: 'Roboto', sans-serif; line-height: 1.5;">${expandedKeysContent}</div>`,
+                icon: 'info',
+                confirmButtonText: 'Close'
+            });
+        });
+         // Function to show S-boxes
+    document.getElementById('showSBoxesBtn').addEventListener('click', async () => {
+        try {
+            const response = await fetch('/get_sboxes');
+            if (!response.ok) throw new Error('Network response was not ok');
+            
+            const sBoxes = await response.json();
+            let sBoxesContent = sBoxes.map((sBox, index) => 
+                `<strong>S-box ${index}:</strong><br>${sBox.join(', ')}<br>`
+            ).join('');
+
+            Swal.fire({
+                title: 'S-boxes',
+                html: `<div style='font-family: "Roboto", sans-serif; line-height: 1.5;'>${sBoxesContent}</div>`,
+                icon: 'info',
+                confirmButtonText: 'Close'
+            });
+        } catch (error) {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Failed to fetch S-boxes.',
+                icon: 'error',
+                confirmButtonText: 'Okay'
+            });
+        }
+    });
+        // Encrypt Button Click Event
+        document.getElementById('encryptBtn').addEventListener('click', async () => {
+            if (!keyGenerated) {
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Please generate the key before encrypting.',
+                    icon: 'error',
+                    confirmButtonText: 'Okay'
+                });
+                return;
+            }
+
+            const key = document.getElementById('expansionKey').value;
+
+            // Check if a file is uploaded
+            const fileInput = document.getElementById('fileInput');
+
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+
+                reader.onload = async (e) => {
+                    const plaintext = e.target.result;
+
+                    const response = await fetch('/encrypt', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ key, plaintext })
+                    });
+
+                    const data = await response.json();
+
+                    // Display ciphertext result
+                    document.getElementById('ciphertextResultContainer').innerHTML =
+                        '<strong>Ciphertext:</strong><br>' + data.ciphertext;
+
+                    // Create a Blob for downloading
+                    const blob = new Blob([data.ciphertext], { type: "application/octet-stream" });
+                    const url = URL.createObjectURL(blob);
+                    const downloadLink = document.getElementById('downloadCiphertext');
+                    downloadLink.href = url;
+                    downloadLink.download = "ciphertext.txt"; // Changed to .txt extension
+                    downloadLink.style.display = "inline-block";
+                };
+
+                reader.readAsText(file);
+                return; // Prevent further execution
+            }
+
+            // Check if plaintext is entered
+            const plaintext = document.getElementById('plaintext').value;
+
+            if (!plaintext) {
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Please enter plaintext for encryption.',
+                    icon: 'error',
+                    confirmButtonText: 'Okay'
+                });
+                return;
+            }
+
+            const response = await fetch('/encrypt', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ key, plaintext })
+            });
+
+            const data = await response.json();
+
+            // Display ciphertext result
+            document.getElementById('ciphertextResultContainer').innerHTML =
+                '<strong>Ciphertext:</strong><br>' + data.ciphertext;
+
+            // Create a Blob for downloading
+            const blob = new Blob([data.ciphertext], { type: "application/octet-stream" });
+            const url = URL.createObjectURL(blob);
+            const downloadLink = document.getElementById('downloadCiphertext');
+            downloadLink.href = url;
+            downloadLink.download = "ciphertext.txt"; // Changed to .txt extension
+            downloadLink.style.display = "inline-block";
+        });
+        // Function to show Ciphertext
+    document.getElementById('viewCiphertextBtn').addEventListener('click', async () => {
+        try {
+            const response = await fetch('/get_round_ciphertexts'); // Adjust endpoint as needed
+            if (!response.ok) throw new Error('Network response was not ok');
+            
+            const ciphertexts = await response.json();
+            let ciphertextContent = ciphertexts.map((ciphertext, index) => 
+                `<strong>Round ${index + 1}:</strong> ${ciphertext.join(', ')}<br>`
+            ).join('');
+
+            Swal.fire({
+                title: 'Ciphertext',
+                html: `<div style='font-family: "Roboto", sans-serif; line-height: 1.5;'>${ciphertextContent}</div>`,
+                icon: 'info',
+                confirmButtonText: 'Close'
+            });
+        } catch (error) {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Failed to fetch ciphertext.',
+                icon: 'error',
+                confirmButtonText: 'Okay'
+            });
+        }
+    });
+
+    // Function to show Plaintext
+    document.getElementById('viewPlaintextBtn').addEventListener('click', async () => {
+        try {
+            const response = await fetch('/get_round_plaintexts'); // Adjust endpoint as needed
+            if (!response.ok) throw new Error('Network response was not ok');
+            
+            const plaintexts = await response.json();
+            let plaintextContent = plaintexts.map((plaintext, index) => 
+                `<strong>Round ${index + 1}:</strong> ${plaintext.join(', ')}<br>`
+            ).join('');
+
+            Swal.fire({
+                title: 'Plaintext',
+                html: `<div style='font-family: "Roboto", sans-serif; line-height: 1.5;'>${plaintextContent}</div>`,
+                icon: 'info',
+                confirmButtonText: 'Close'
+            });
+        } catch (error) {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Failed to fetch plaintext.',
+                icon: 'error',
+                confirmButtonText: 'Okay'
+            });
+        }
+    });
+        // Decrypt Button Click Event
+        document.getElementById('decryptBtn').addEventListener('click', async () => {
+            if (!keyGenerated) {
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Please generate the key before decrypting.',
+                    icon: 'error',
+                    confirmButtonText: 'Okay'
+                });
+                return;
+            }
+
+            const key = document.getElementById('expansionKey').value;
+
+            // Check if a file is uploaded
+            const encryptedFileInput = document.getElementById('encryptedFileInput');
+
+            if (encryptedFileInput.files.length > 0) {
+                const file = encryptedFileInput.files[0];
+                const reader = new FileReader();
+
+                reader.onload = async (e) => {
+                    const ciphertext = e.target.result;
+
+                    const response = await fetch('/decrypt', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ key, ciphertext })
+                    });
+
+                    const data = await response.json();
+
+                    // Display plaintext result
+                    document.getElementById('plaintextResultContainer').innerHTML =
+                        '<strong>Plaintext:</strong><br>' + data.plaintext;
+
+                    // Create a Blob for downloading
+                    const blob = new Blob([data.plaintext], { type: "text/plain" });
+                    const url = URL.createObjectURL(blob);
+                    const downloadLink = document.getElementById('downloadPlaintext');
+                    downloadLink.href = url;
+                    downloadLink.download = "plaintext.txt"; // Changed to .txt extension
+                    downloadLink.style.display = "inline-block";
+                };
+
+                reader.readAsText(file);
+                return; // Prevent further execution
+            }
+
+            // Check if ciphertext is entered
+            const ciphertext = document.getElementById('ciphertext').value;
+
+            if (!ciphertext) {
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Please enter ciphertext for decryption.',
+                    icon: 'error',
+                    confirmButtonText: 'Okay'
+                });
+                return;
+            }
+
+            const response = await fetch('/decrypt', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ key, ciphertext })
+            });
+
+            const data = await response.json();
+
+            // Display plaintext result
+            document.getElementById('plaintextResultContainer').innerHTML =
+                '<strong>Plaintext:</strong><br>' + data.plaintext;
+
+            // Create a Blob for downloading
+            const blob = new Blob([data.plaintext], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            const downloadLink = document.getElementById('downloadPlaintext');
+            downloadLink.href = url;
+            downloadLink.download = "plaintext.txt"; // Changed to .txt extension
+            downloadLink.style.display = "inline-block";
+        });
+    </script>
+</body>
+</html>
