@@ -11,7 +11,7 @@ Follow these steps to get the application up and running:
 git clone https://github.com/Sarvani-5/BlowfishAlgorithm.git
 ```
 
-### 1. Install Dependencies
+### 2. Install Dependencies
 Before running the app, make sure to install Flask. Simply open your terminal or command prompt and run:
 
 ```bash
