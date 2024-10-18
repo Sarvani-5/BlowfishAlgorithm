@@ -11,3 +11,12 @@ Before running the app, make sure to install Flask. Simply open your terminal or
 ```bash
 pip install flask
 
+## Navigate to Project Directory
+Move into the project folder where the application files are located
+
+```bash
+cd [project location]
+
+
+
+
