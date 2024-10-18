@@ -8,7 +8,7 @@ Follow these steps to get the application up and running:
 
 ### 1.Clone the repository
 ```bash
-git clone
+git clone https://github.com/Sarvani-5/BlowfishAlgorithm.git
 ```
 
 ### 1. Install Dependencies
